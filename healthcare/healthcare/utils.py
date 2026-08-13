@@ -26,7 +26,6 @@ from healthcare.healthcare.doctype.observation.observation import add_observatio
 from healthcare.healthcare.doctype.observation_template.observation_template import (
 	get_observation_template_details,
 )
-from healthcare.setup import setup_healthcare
 
 
 @frappe.whitelist()
@@ -53,7 +52,7 @@ def get_healthcare_services_to_invoice(
 
 def validate_customer_created(patient, customer, link_customer):
 	message = ""
-	if link_customer:
+	if link_customer and customer:
 		frappe.db.set_value("Patient", patient, "customer", customer)
 		message = _("Customer {0} has been linked to Patient").format(customer)
 	elif not frappe.db.get_value("Patient", patient.name, "customer"):
@@ -1056,8 +1055,11 @@ def manage_invoice_submit_cancel(doc, method):
 						status = "Active" if method == "on_submit" else "Disabled"
 						frappe.db.set_value("Patient", item.reference_dn, "status", status)
 
-		if method == "on_submit" and frappe.db.get_single_value(
-			"Healthcare Settings", "create_observation_on_si_submit"
+		if (
+			method == "on_submit"
+			and not doc.get("is_return")
+			and not doc.get("return_against")
+			and frappe.db.get_single_value("Healthcare Settings", "create_observation_on_si_submit")
 		):
 			create_sample_collection_and_observation(doc)
 
